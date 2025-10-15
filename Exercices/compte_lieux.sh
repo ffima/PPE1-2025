@@ -11,7 +11,7 @@ fi
 
 if [ ! -d $DATADIR/2016 ] || [ ! -d $DATADIR/2017 ] || [ ! -d $DATADIR/2018 ]
 then
-        echo "$DATADIR n'est probabment par le bon dossier"
+        echo "$DATADIR n'est probabment pas le bon dossier"
 fi
 
 cd $DATADIR
