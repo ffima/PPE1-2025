@@ -26,12 +26,15 @@ lineno=1
 while read -r line; do
     if [ -n "$line" ]; then
         code=$(curl -s -o /dev/null -w "%{http_code}" "$line")
-        content=$(curl -s "$line")
-        encoding=$(echo "$content" | grep -iPo '(?<=charset=)[a-zA-Z0-9_-]+' | head -n 1)
+        content=$(curl -s -L "$line")
+       
+        encoding=$(echo "$content" | grep -ioP "charset\s*=\s*[\"']?([^\"' >]+)" | head -n 1 | sed -E "s/charset\s*=\s*[\"']?//i" | tr -d '"' | tr -d "'")
         if [ -z "$encoding" ]; then
-            encoding="non présent"
+            encoding="UTF-8" 
         fi
-        nb_mots=$(echo "$content" | lynx -dump -stdin -nolist | wc -w)
+
+        nb_mots=$(echo "$content" | sed 's/<[^>]*>//g' | sed 's/&[^;]*;//g' | tr -d '[:punct:]' | tr '[:space:]' '\n' | grep -v "^\s*$" | wc -w)
+        
         echo "<tr>" >> "$FICHIER_RESULTAT"
         echo "<td>${lineno}</td>" >> "$FICHIER_RESULTAT"
         echo "<td><a href=\"${line}\" target=\"_blank\">${line}</a></td>" >> "$FICHIER_RESULTAT"
