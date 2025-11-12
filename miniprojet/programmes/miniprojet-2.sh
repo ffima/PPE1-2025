@@ -1,52 +1,26 @@
-if [ $# -ne 2 ]; then
-    echo "Le script attend exactement deux arguments: le chemin vers le fichier d'URL et le chemin vers le dossier de sortie"
-    exit 1
+if [ $# -ne 2 ]
+then
+    echo "Le scripte attend exactement deux arguments: le chemin vers le fichier d'URL et le chemin vers le dossier de sortie"
+    exit
 fi
 
 FICHIER_URL=$1
 DOSSIER_SORTIE=$2
 FICHIER_RESULTAT="$DOSSIER_SORTIE/tableau-fr.html"
+echo "<html><body><table border=\"1\"><thead><tr><th>Numéro</th><th>URL</th><th>Code_HTTP</th><th>Encodage</th><th>NB_mots</th></tr></thead><tbody>" > "$FICHIER_RESULTAT"
 
-echo "<!DOCTYPE html>" > "$FICHIER_RESULTAT"
-echo "<html lang=\"fr\">" >> "$FICHIER_RESULTAT"
-echo "<head>" >> "$FICHIER_RESULTAT"
-echo "<meta charset=\"UTF-8\">" >> "$FICHIER_RESULTAT"
-echo "<title>Tableau des URLs</title>" >> "$FICHIER_RESULTAT"
-echo "<style>" >> "$FICHIER_RESULTAT"
-echo "table { border-collapse: collapse; width: 100%; }" >> "$FICHIER_RESULTAT"
-echo "th, td { border: 1px solid #000; padding: 8px; text-align: left; }" >> "$FICHIER_RESULTAT"
-echo "th { background-color: #f2f2f2; }" >> "$FICHIER_RESULTAT"
-echo "</style>" >> "$FICHIER_RESULTAT"
-echo "</head>" >> "$FICHIER_RESULTAT"
-echo "<body>" >> "$FICHIER_RESULTAT"
-echo "<table>" >> "$FICHIER_RESULTAT"
-echo "<tr><th>Numéro</th><th>URL</th><th>Code HTTP</th><th>Encodage</th><th>Nb mots</th></tr>" >> "$FICHIER_RESULTAT"
-
-lineno=1
+num=1
 while read -r line; do
     if [ -n "$line" ]; then
         code=$(curl -s -o /dev/null -w "%{http_code}" "$line")
-        content=$(curl -s -L "$line")
-       
-        encoding=$(echo "$content" | grep -ioP "charset\s*=\s*[\"']?([^\"' >]+)" | head -n 1 | sed -E "s/charset\s*=\s*[\"']?//i" | tr -d '"' | tr -d "'")
+        content=$(curl -s "$line")
+        encoding=$(echo $content | grep -ioP 'charset=["'\''"]?\K[^"'\'' >]+' | head -n 1)
         if [ -z "$encoding" ]; then
-            encoding="UTF-8" 
+            encoding="non présent"
         fi
-
-        nb_mots=$(echo "$content" | sed 's/<[^>]*>//g' | sed 's/&[^;]*;//g' | tr -d '[:punct:]' | tr '[:space:]' '\n' | grep -v "^\s*$" | wc -w)
-        
-        echo "<tr>" >> "$FICHIER_RESULTAT"
-        echo "<td>${lineno}</td>" >> "$FICHIER_RESULTAT"
-        echo "<td><a href=\"${line}\" target=\"_blank\">${line}</a></td>" >> "$FICHIER_RESULTAT"
-        echo "<td>${code}</td>" >> "$FICHIER_RESULTAT"
-        echo "<td>${encoding}</td>" >> "$FICHIER_RESULTAT"
-        echo "<td>${nb_mots}</td>" >> "$FICHIER_RESULTAT"
-        echo "</tr>" >> "$FICHIER_RESULTAT"
-
-        lineno=$((lineno + 1))
+        nb_mots=$(lynx -dump -nolist $line | wc -w)
+        echo "<tr><td>${num}</td><td>${line}</td><td>${code}</td><td>${encoding}</td><td>${nb_mots}</td></tr>" >> "$FICHIER_RESULTAT"
+        ((num++))
     fi
 done < "$FICHIER_URL"
-
-echo "</table>" >> "$FICHIER_RESULTAT"
-echo "</body>" >> "$FICHIER_RESULTAT"
-echo "</html>" >> "$FICHIER_RESULTAT"
+echo "</table></body></html>" >> "$FICHIER_RESULTAT"

@@ -7,26 +7,19 @@ fi
 FICHIER_URL=$1
 DOSSIER_SORTIE=$2
 FICHIER_RESULTAT="$DOSSIER_SORTIE/tableau-fr.tsv"
-
 echo "Numéro\tURL\tCode_HTTP\tEncodage\tNb_mots" > "$FICHIER_RESULTAT"
 
 num=1
 while read -r line; do
     if [ -n "$line" ]; then
-
         code=$(curl -s -o /dev/null -w "%{http_code}" "$line")
-
         content=$(curl -s "$line")
-
-        encoding=$(echo "$content" | grep -iPo '(?<=charset=)[a-zA-Z0-9_-]+' | head -n 1)
+        encoding=$(echo $content | grep -ioP 'charset=["'\''"]?\K[^"'\'' >]+' | head -n 1)
         if [ -z "$encoding" ]; then
             encoding="non présent"
         fi
-
-        nb_mots=$(echo "$content" | lynx -dump -stdin -nolist | wc -w)
-
+        nb_mots=$(lynx -dump -nolist $line | wc -w)
         echo "${num}\t${line}\t${code}\t${encoding}\t${nb_mots}" >> "$FICHIER_RESULTAT"
-
         ((num++))
     fi
 done < "$FICHIER_URL"
